@@ -1,5 +1,7 @@
 # Sorteo Backend (NestJS)
 
+[![CI](https://github.com/DevCraftersEnterprise/sorteo-diocesis-backend/actions/workflows/ci.yml/badge.svg)](https://github.com/DevCraftersEnterprise/sorteo-diocesis-backend/actions/workflows/ci.yml)
+
 > Sustituto incremental de `sorteo_backend` (Express). Ver el plan de migración completo para el orden de corte de endpoints.
 
 ## Estado
@@ -31,9 +33,15 @@ npm run test:e2e # e2e
 npm run test:cov # cobertura
 \`\`\`
 
-## Despliegue
+Servicio independiente en Render, desplegado en paralelo al backend Express original durante la migración. Variables de entorno: ver `.env.template` para la lista completa; se configuran manualmente en el panel de Render (Build Command: `npm install && npm run build`, Start Command: `npm run start:prod`, Health Check Path: `/health`).
 
-Servicio independiente en Render, desplegado en paralelo al backend Express original durante la migración. Variables de entorno configuradas en el panel de Render (se documentan a partir de la Tarea 1.2).
+## Documentación de la API
+
+Swagger UI disponible en `/docs` (y el spec OpenAPI en `/docs-json`) mientras el servicio está corriendo.
+
+## Contribuir
+
+Ver [CONTRIBUTING.md](./CONTRIBUTING.md) para convención de ramas, commits y versionado.
 
 ## Licencia
 
