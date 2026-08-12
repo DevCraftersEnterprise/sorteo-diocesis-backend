@@ -10,9 +10,9 @@ export const databaseProviders: Provider[] = [
     useFactory: (configService: ConfigService) =>
       new Pool({
         connectionString: configService.get<string>('database.url'),
-        ssl: {
-          rejectUnauthorized: false,
-        },
+        ssl: configService.get<boolean>('database.ssl')
+          ? { rejectUnauthorized: false }
+          : false,
       }),
   },
 ];

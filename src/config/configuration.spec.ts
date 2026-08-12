@@ -28,6 +28,7 @@ describe('configuration()', () => {
 
     expect(config.port).toBe(4000);
     expect(config.database.url).toBe('postgres://x');
+    expect(config.database.ssl).toBe(true);
     expect(config.cloudinary).toEqual({
       cloudName: 'cloud',
       apiKey: 'key',
@@ -44,5 +45,10 @@ describe('configuration()', () => {
   it('usa 3000 como puerto por defecto si PORT no está definido', () => {
     delete process.env.PORT;
     expect(configuration().port).toBe(3000);
+  });
+
+  it('desactiva ssl solo si DATABASE_SSL es exactamente "false"', () => {
+    process.env.DATABASE_SSL = 'false';
+    expect(configuration().database.ssl).toBe(false);
   });
 });
