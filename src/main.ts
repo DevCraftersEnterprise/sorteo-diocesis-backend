@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { Logger } from '@nestjs/common';
+import { setupSwagger } from './config/swagger.config';
 
 async function bootstrap() {
   const isProd = process.env.NODE_ENV === 'production';
@@ -11,6 +12,8 @@ async function bootstrap() {
       ? ['log', 'warn', 'error']
       : ['log', 'warn', 'error', 'debug', 'verbose'],
   });
+
+  setupSwagger(app);
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('port');
