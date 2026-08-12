@@ -15,6 +15,7 @@ describe('configuration()', () => {
   it('mapea las variables planas a la estructura anidada esperada', () => {
     process.env.PORT = '4000';
     process.env.DATABASE_URL = 'postgres://x';
+    process.env.DATABASE_SSL = 'true';
     process.env.CLOUDINARY_CLOUD_NAME = 'cloud';
     process.env.CLOUDINARY_API_KEY = 'key';
     process.env.CLOUDINARY_API_SECRET = 'secret';
