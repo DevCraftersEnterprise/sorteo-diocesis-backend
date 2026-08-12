@@ -55,4 +55,23 @@ describe('envValidationSchema', () => {
     );
     expect(error?.details.length).toBeGreaterThan(1);
   });
+
+  it('acepta DATABASE_SSL en "false" (ej. CI contra Postgres local)', () => {
+    const result = envValidationSchema.validate(
+      { ...validEnv, DATABASE_SSL: 'false' },
+      { abortEarly: false },
+    );
+    expect(result.error).toBeUndefined();
+
+    const value = result.value as { DATABASE_SSL: string };
+    expect(value.DATABASE_SSL).toBe('false');
+  });
+
+  it('rechaza un valor de DATABASE_SSL que no sea "true"/"false"', () => {
+    const { error } = envValidationSchema.validate(
+      { ...validEnv, DATABASE_SSL: 'maybe' },
+      { abortEarly: false },
+    );
+    expect(error?.message).toContain('DATABASE_SSL');
+  });
 });

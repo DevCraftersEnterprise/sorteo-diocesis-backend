@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+      DATABASE_SSL: 'false'
+      CLOUDINARY_CLOUD_NAME: ci-test
+      CLOUDINARY_API_KEY: ci-test-key
+      CLOUDINARY_API_SECRET: ci-test-secret
+      ENCRYPTION_KEY: ci0123456789abcdef
+      PHONE_SALT: ci-test-salt
+      FIREBASE_PROJECT_ID: ci-test-project
+      FIREBASE_CLIENT_EMAIL: ci@ci-test-project.iam.gserviceaccount.com
+      FIREBASE_PRIVATE_KEY: "-----BEGIN PRIVATE KEY-----\nci-fake-key\n-----END PRIVATE KEY-----\n"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Verificar formato (Prettier)
+        run: npm run format:check
+
+      - name: Lint (sin autofix — debe fallar si hay algo mal, no corregirlo en silencio)
+        run: npm run lint:ci
+
+      - name: Tests unitarios
+        run: npm run test
+
+      - name: Tests e2e
+        run: npm run test:e2e
+
+      - name: Build de producción
+        run: npm run build

@@ -15,6 +15,7 @@ describe('configuration()', () => {
   it('mapea las variables planas a la estructura anidada esperada', () => {
     process.env.PORT = '4000';
     process.env.DATABASE_URL = 'postgres://x';
+    process.env.DATABASE_SSL = 'true';
     process.env.CLOUDINARY_CLOUD_NAME = 'cloud';
     process.env.CLOUDINARY_API_KEY = 'key';
     process.env.CLOUDINARY_API_SECRET = 'secret';
@@ -28,6 +29,7 @@ describe('configuration()', () => {
 
     expect(config.port).toBe(4000);
     expect(config.database.url).toBe('postgres://x');
+    expect(config.database.ssl).toBe(true);
     expect(config.cloudinary).toEqual({
       cloudName: 'cloud',
       apiKey: 'key',
@@ -44,5 +46,10 @@ describe('configuration()', () => {
   it('usa 3000 como puerto por defecto si PORT no está definido', () => {
     delete process.env.PORT;
     expect(configuration().port).toBe(3000);
+  });
+
+  it('desactiva ssl solo si DATABASE_SSL es exactamente "false"', () => {
+    process.env.DATABASE_SSL = 'false';
+    expect(configuration().database.ssl).toBe(false);
   });
 });
