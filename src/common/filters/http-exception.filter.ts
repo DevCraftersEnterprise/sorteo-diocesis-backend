@@ -6,9 +6,9 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
+import { STATUS_CODES } from 'node:http';
 import { Response } from 'express';
 import { RequestWithId } from '../middleware/request-id.middleware';
-import { STATUS_CODES } from 'node:http';
 
 export interface ErrorResponseBody {
   statusCode: number;
@@ -33,8 +33,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     if (statusCode >= 500) {
       this.logger.error(
-        `[${request.id}] ${request.method} ${request.originalUrl} -> ${statusCode}`,
-        exception instanceof Error ? exception.stack : String(exception),
+        `[${request.id}] ${request.method} ${request.originalUrl} -> ${statusCode} ${this.detailsForLog(exception)}`,
+        exception instanceof Error ? exception.stack : undefined,
       );
     }
 
@@ -68,14 +68,19 @@ export class HttpExceptionFilter implements ExceptionFilter {
       }
 
       const { error, message } = payload as {
-        error?: string;
-        message?: string | string[];
+        error?: unknown;
+        message?: unknown;
       };
 
       return {
         statusCode,
-        error: this.toSnakeCode(error ?? this.reasonPhrase(statusCode)),
-        message: message ?? exception.message,
+        error: this.toSnakeCode(
+          typeof error === 'string' ? error : this.reasonPhrase(statusCode),
+        ),
+        message:
+          typeof message === 'string' || Array.isArray(message)
+            ? (message as string | string[])
+            : exception.message,
       };
     }
 
@@ -96,5 +101,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '_')
       .replace(/^_+|_+$/g, '');
+  }
+
+  private detailsForLog(exception: unknown): string {
+    if (exception instanceof HttpException) {
+      const payload = exception.getResponse();
+      return typeof payload === 'string' ? payload : JSON.stringify(payload);
+    }
+    return exception instanceof Error ? exception.message : String(exception);
   }
 }

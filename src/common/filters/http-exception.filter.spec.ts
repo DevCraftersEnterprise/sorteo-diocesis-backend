@@ -4,6 +4,7 @@ import {
   ConflictException,
   Logger,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import {
@@ -158,6 +159,44 @@ describe('HttpExceptionFilter', () => {
     expect(body.requestId).toBe('req-xyz');
     expect(body.timestamp).toEqual(
       expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+    );
+  });
+
+  it('usa la frase estándar si el payload trae un error que no es string (ej. Terminus)', () => {
+    const { host, json } = buildHost();
+    filter.catch(
+      new ServiceUnavailableException({
+        status: 'error',
+        info: {},
+        error: { database: { status: 'down', message: 'connection refused' } },
+        details: {
+          database: { status: 'down', message: 'connection refused' },
+        },
+      }),
+      host,
+    );
+
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: 503,
+        error: 'service_unavailable',
+      }),
+    );
+  });
+
+  it('incluye el payload completo en el log de un 5xx, para diagnosticar sin adivinar', () => {
+    const { host } = buildHost({ id: 'req-503' });
+    filter.catch(
+      new ServiceUnavailableException({
+        status: 'error',
+        error: { database: { status: 'down', message: 'connection refused' } },
+      }),
+      host,
+    );
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining('connection refused'),
+      expect.any(String),
     );
   });
 });
