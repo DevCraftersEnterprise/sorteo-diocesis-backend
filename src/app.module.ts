@@ -14,6 +14,7 @@ import { envValidationSchema } from './config/env.validation';
 import { validationPipeOptions } from './config/validation-pipe.options';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
+import { UploadModule } from './modules/upload/upload.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { HealthModule } from './health/health.module';
     }),
     DatabaseModule,
     HealthModule,
+    UploadModule,
   ],
   providers: [
     { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
