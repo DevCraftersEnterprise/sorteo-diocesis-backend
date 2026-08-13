@@ -15,23 +15,23 @@
 
 ## Instalación
 
-\`\`\`bash
+```bash
 npm install
-\`\`\`
+```
 
 ## Desarrollo
 
-\`\`\`bash
+```bash
 npm run start:dev
-\`\`\`
+```
 
 ## Tests
 
-\`\`\`bash
+```bash
 npm run test # unit
 npm run test:e2e # e2e
 npm run test:cov # cobertura
-\`\`\`
+```
 
 Servicio independiente en Render, desplegado en paralelo al backend Express original durante la migración. Variables de entorno: ver `.env.template` para la lista completa; se configuran manualmente en el panel de Render (Build Command: `npm install && npm run build`, Start Command: `npm run start:prod`, Health Check Path: `/health`).
 
