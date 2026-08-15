@@ -15,6 +15,7 @@ import { validationPipeOptions } from './config/validation-pipe.options';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 import { UploadModule } from './modules/upload/upload.module';
+import { WalletModule } from './modules/wallet/wallet.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { UploadModule } from './modules/upload/upload.module';
     DatabaseModule,
     HealthModule,
     UploadModule,
+    WalletModule,
   ],
   providers: [
     { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },

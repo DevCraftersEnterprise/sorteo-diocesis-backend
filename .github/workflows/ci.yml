@@ -58,6 +58,9 @@ jobs:
       - name: Tests unitarios
         run: npm run test
 
+      - name: Migrar base de datos (Postgres efímero de CI)
+        run: npm run migrate:up:ci
+
       - name: Tests e2e
         run: npm run test:e2e
 
