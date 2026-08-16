@@ -21,15 +21,28 @@ Tipos usados en este repo: `feat`, `fix`, `refactor`, `test`, `chore`, `docs`.
 
 ## Antes de mergear a main
 
-\`\`\`bash
+```bash
 npm run format:check
 npm run lint:ci
 npm run test
 npm run test:e2e
 npm run build
-\`\`\`
+```
 
 Es exactamente lo que corre el CI (`.github/workflows/ci.yml`) — si pasa local, pasa en GitHub.
+
+## Base de datos de test (local)
+
+Los e2e que escriben datos (creación de participantes, y más adelante pago/purga) corren contra un Postgres local en Docker — nunca contra la base de coexistencia real.
+
+Setup único:
+
+```bash
+docker compose -f docker-compose.test.yml up -d
+npm run migrate:up:test
+```
+
+`npm run test:e2e` ya carga `.env.test` automáticamente y limpia la tabla antes de correr.
 
 ## Versionado
 
