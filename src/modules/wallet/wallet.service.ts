@@ -3,7 +3,7 @@ import {
   ConflictException,
   Injectable,
 } from '@nestjs/common';
-import { WalletRepository } from './wallet.repository';
+import { ParticipantsRepository } from '../participants/participants.repository';
 
 export interface WalletAvailability {
   ok: true;
@@ -12,7 +12,9 @@ export interface WalletAvailability {
 
 @Injectable()
 export class WalletService {
-  constructor(private readonly walletRepository: WalletRepository) {}
+  constructor(
+    private readonly participantsRepository: ParticipantsRepository,
+  ) {}
 
   async checkAvailability(
     wallet: string | undefined,
@@ -24,11 +26,7 @@ export class WalletService {
       });
     }
 
-    // Nota: no hay lock entre esta lectura y el insert real en
-    // /participants (Etapa 3) — dos requests concurrentes pueden ver
-    // "disponible" para la misma cartera. La base de datos es la
-    // última defensa real (constraint único), esto es solo UX.
-    const taken = await this.walletRepository.exists(wallet);
+    const taken = await this.participantsRepository.walletExists(wallet);
     if (taken) {
       throw new ConflictException({
         error: 'wallet_already_taken',
