@@ -1,4 +1,8 @@
-import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import {
+  ExecutionContext,
+  ForbiddenException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { FirebaseAdminService } from '../../integrations/firebase/firebase-admin.service';
 import { FirebaseAuthGuard, RequestWithUser } from './firebase-auth.guard';
 
@@ -43,24 +47,6 @@ describe('FirebaseAuthGuard', () => {
     );
   });
 
-  it('permite el acceso con un token válido y adjunta el usuario decodificado al request', async () => {
-    const decoded = { uid: 'user-123', email: 'admin@example.com' };
-    const verifyIdTokenMock = jest.fn().mockResolvedValue(decoded);
-    const firebaseAdminService = {
-      verifyIdToken: verifyIdTokenMock,
-    } as unknown as FirebaseAdminService;
-    const guard = new FirebaseAuthGuard(firebaseAdminService);
-    const { context, request } = buildContext({
-      authorization: 'Bearer valid-token',
-    });
-
-    const result = await guard.canActivate(context);
-
-    expect(result).toBe(true);
-    expect(verifyIdTokenMock).toHaveBeenCalledWith('valid-token');
-    expect(request.user).toBe(decoded);
-  });
-
   it('lanza UnauthorizedException si el token es inválido o expiró', async () => {
     const verifyIdTokenMock = jest
       .fn()
@@ -78,7 +64,58 @@ describe('FirebaseAuthGuard', () => {
     );
   });
 
-  it('documenta el comportamiento actual: cualquier token válido pasa, sin verificar rol (C2 — se corrige en la Tarea 4.2)', async () => {
+  it('permite el acceso con un token válido que trae el claim admin:true', async () => {
+    const decoded = {
+      uid: 'user-123',
+      email: 'admin@example.com',
+      admin: true,
+    };
+    const verifyIdTokenMock = jest.fn().mockResolvedValue(decoded);
+    const firebaseAdminService = {
+      verifyIdToken: verifyIdTokenMock,
+    } as unknown as FirebaseAdminService;
+    const guard = new FirebaseAuthGuard(firebaseAdminService);
+    const { context, request } = buildContext({
+      authorization: 'Bearer valid-token',
+    });
+
+    const result = await guard.canActivate(context);
+
+    expect(result).toBe(true);
+    expect(request.user).toBe(decoded);
+  });
+
+  it('lanza ForbiddenException si el token es válido pero no trae el claim admin — corrige C2', async () => {
+    const decoded = { uid: 'user-sin-admin', email: 'user@example.com' };
+    const verifyIdTokenMock = jest.fn().mockResolvedValue(decoded);
+    const firebaseAdminService = {
+      verifyIdToken: verifyIdTokenMock,
+    } as unknown as FirebaseAdminService;
+    const guard = new FirebaseAuthGuard(firebaseAdminService);
+    const { context } = buildContext({
+      authorization: 'Bearer valid-token-sin-claim',
+    });
+
+    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+  });
+
+  it('lanza ForbiddenException si admin está presente pero en false', async () => {
+    const decoded = { uid: 'user-123', admin: false };
+    const verifyIdTokenMock = jest.fn().mockResolvedValue(decoded);
+    const firebaseAdminService = {
+      verifyIdToken: verifyIdTokenMock,
+    } as unknown as FirebaseAdminService;
+    const guard = new FirebaseAuthGuard(firebaseAdminService);
+    const { context } = buildContext({ authorization: 'Bearer token' });
+
+    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+  });
+
+  it('ya NO permite el acceso solo por tener un token válido sin rol (confirma que C2 quedó corregido)', async () => {
     const decoded = { uid: 'cualquier-usuario-autenticado' };
     const verifyIdTokenMock = jest.fn().mockResolvedValue(decoded);
     const firebaseAdminService = {
@@ -89,6 +126,8 @@ describe('FirebaseAuthGuard', () => {
       authorization: 'Bearer any-valid-token',
     });
 
-    await expect(guard.canActivate(context)).resolves.toBe(true);
+    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
   });
 });
