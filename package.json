@@ -28,6 +28,7 @@
     "migrate:up": "node-pg-migrate up --migration-file-language sql --reject-unauthorized false",
     "migrate:up:ci": "node-pg-migrate up --migration-file-language sql",
     "migrate:up:test": "dotenv -e .env.test -- node-pg-migrate up --migration-file-language sql",
+    "admin:set-claim": "dotenv -e .env -- node scripts/set-admin-claim.js",
     "pretest:e2e": "dotenv -e .env.test -- node scripts/reset-test-db.js"
   },
   "dependencies": {

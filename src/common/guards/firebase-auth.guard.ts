@@ -1,6 +1,7 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -27,20 +28,25 @@ export class FirebaseAuthGuard implements CanActivate {
       });
     }
 
+    let decoded: DecodedIdToken;
     try {
-      const decoded = await this.firebaseAdminService.verifyIdToken(token);
-      // Comportamiento actual (Express, requireAdmin.js): cualquier
-      // token válido pasa, sin verificar ningún rol — hallazgo
-      // CRÍTICO C2 del dossier. Se corrige deliberadamente en la
-      // Tarea 4.2, no en esta.
-      request.user = decoded;
-      return true;
+      decoded = await this.firebaseAdminService.verifyIdToken(token);
     } catch {
       throw new UnauthorizedException({
         error: 'unauthorized',
         message: 'Token inválido o expirado',
       });
     }
+
+    if (decoded.admin !== true) {
+      throw new ForbiddenException({
+        error: 'forbidden',
+        message: 'La cuenta no tiene permisos de administrador',
+      });
+    }
+
+    request.user = decoded;
+    return true;
   }
 
   private extractToken(request: Request): string | undefined {
