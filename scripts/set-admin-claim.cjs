@@ -1,10 +1,10 @@
-import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
+const { initializeApp, cert, getApps } = require('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth');
 
 async function main() {
     const email = process.argv[2];
     if (!email) {
-        console.error('Uso: node scripts/set-admin-claim.js <email>');
+        console.error('Uso: node scripts/set-admin-claim.cjs <email>');
         process.exit(1);
     }
 
