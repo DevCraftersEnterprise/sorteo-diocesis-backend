@@ -8,6 +8,9 @@
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
   "testTimeout": 15000,
+  "transformIgnorePatterns": [
+    "/node_modules/(?!jose)/"
+  ],
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   }
