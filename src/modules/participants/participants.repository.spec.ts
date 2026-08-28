@@ -149,4 +149,87 @@ describe('ParticipantsRepository', () => {
       );
     });
   });
+
+  describe('findUnpaid', () => {
+    it('sin query: solo filtra por is_paid, sin parámetros extra', async () => {
+      const queryMock = jest.fn().mockResolvedValue({ rows: [] });
+      const pool = { query: queryMock } as unknown as Pool;
+      const repository = new ParticipantsRepository(pool);
+
+      await repository.findUnpaid('');
+
+      const calls = queryMock.mock.calls as [string, unknown[]][];
+      const [sql, params] = calls[0];
+      expect(sql).toContain('WHERE is_paid IS NOT TRUE');
+      expect(sql).not.toContain('name ILIKE');
+      expect(params).toEqual([]);
+    });
+
+    it('query solo con texto: filtra por nombre', async () => {
+      const queryMock = jest.fn().mockResolvedValue({ rows: [] });
+      const pool = { query: queryMock } as unknown as Pool;
+      const repository = new ParticipantsRepository(pool);
+
+      await repository.findUnpaid('Juan');
+
+      const calls = queryMock.mock.calls as [string, unknown[]][];
+      const [sql, params] = calls[0];
+      expect(sql).toContain('name ILIKE $1');
+      expect(sql).not.toContain('wallet_number LIKE');
+      expect(params).toEqual(['%Juan%']);
+    });
+
+    it('query con dígitos: filtra por nombre O prefijo de cartera', async () => {
+      const queryMock = jest.fn().mockResolvedValue({ rows: [] });
+      const pool = { query: queryMock } as unknown as Pool;
+      const repository = new ParticipantsRepository(pool);
+
+      await repository.findUnpaid('120');
+
+      const calls = queryMock.mock.calls as [string, unknown[]][];
+      const [sql, params] = calls[0];
+      expect(sql).toContain('name ILIKE $1 OR wallet_number LIKE $2');
+      expect(params).toEqual(['%120%', '120']);
+    });
+
+    it('query mixta (texto + dígitos): extrae solo los dígitos para el prefijo de cartera', async () => {
+      const queryMock = jest.fn().mockResolvedValue({ rows: [] });
+      const pool = { query: queryMock } as unknown as Pool;
+      const repository = new ParticipantsRepository(pool);
+
+      await repository.findUnpaid('Juan 5');
+
+      const calls = queryMock.mock.calls as [string, unknown[]][];
+      const [, params] = calls[0];
+      expect(params).toEqual(['%Juan 5%', '5']);
+    });
+
+    it('query de solo espacios se trata como vacía', async () => {
+      const queryMock = jest.fn().mockResolvedValue({ rows: [] });
+      const pool = { query: queryMock } as unknown as Pool;
+      const repository = new ParticipantsRepository(pool);
+
+      await repository.findUnpaid('   ');
+
+      const calls = queryMock.mock.calls as [string, unknown[]][];
+      const [, params] = calls[0];
+      expect(params).toEqual([]);
+    });
+
+    it('devuelve las filas con wallet_number en snake_case (contrato real de Flutter)', async () => {
+      const rows = [
+        {
+          id: 'uuid-1',
+          name: 'Juan',
+          wallet_number: '007',
+          created_at: new Date(),
+        },
+      ];
+      const queryMock = jest.fn().mockResolvedValue({ rows });
+      const pool = { query: queryMock } as unknown as Pool;
+      const repository = new ParticipantsRepository(pool);
+
+      expect(await repository.findUnpaid('')).toBe(rows);
+    });
+  });
 });

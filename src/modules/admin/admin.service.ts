@@ -1,5 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ParticipantsRepository } from '../participants/participants.repository';
+import {
+  ParticipantsRepository,
+  UnpaidParticipant,
+} from '../participants/participants.repository';
 
 @Injectable()
 export class AdminService {
@@ -19,5 +22,9 @@ export class AdminService {
         message: `No existe ningún participante con la cartera ${walletNumber}`,
       });
     }
+  }
+
+  findUnpaid(query: string): Promise<UnpaidParticipant[]> {
+    return this.participantsRepository.findUnpaid(query);
   }
 }
