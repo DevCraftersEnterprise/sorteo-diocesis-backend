@@ -123,4 +123,30 @@ describe('ParticipantsRepository', () => {
       expect(await repository.walletExists('999')).toBe(false);
     });
   });
+
+  describe('markAsPaid', () => {
+    it('actualiza la cartera y devuelve true si afectó una fila', async () => {
+      const queryMock = jest.fn().mockResolvedValue({ rowCount: 1 });
+      const pool = { query: queryMock } as unknown as Pool;
+      const repository = new ParticipantsRepository(pool);
+
+      const result = await repository.markAsPaid('007', 'admin@example.com');
+
+      expect(queryMock).toHaveBeenCalledWith(
+        expect.stringContaining('UPDATE participants'),
+        ['admin@example.com', '007'],
+      );
+      expect(result).toBe(true);
+    });
+
+    it('devuelve false si no existe la cartera (0 filas afectadas)', async () => {
+      const queryMock = jest.fn().mockResolvedValue({ rowCount: 0 });
+      const pool = { query: queryMock } as unknown as Pool;
+      const repository = new ParticipantsRepository(pool);
+
+      expect(await repository.markAsPaid('999', 'admin@example.com')).toBe(
+        false,
+      );
+    });
+  });
 });

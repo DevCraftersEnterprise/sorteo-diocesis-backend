@@ -17,6 +17,7 @@ import { HealthModule } from './health/health.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { WalletModule } from './modules/wallet/wallet.module';
 import { ParticipantsModule } from './modules/participants/participants.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { ParticipantsModule } from './modules/participants/participants.module';
     UploadModule,
     WalletModule,
     ParticipantsModule,
+    AdminModule,
   ],
   providers: [
     { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
