@@ -7,8 +7,10 @@ import { ParticipantsService } from './participants.service';
 
 function buildDependencies() {
   const createMock = jest.fn();
+  const findAllMaskedMock = jest.fn();
   const repository = {
     create: createMock,
+    findAllMasked: findAllMaskedMock,
   } as unknown as ParticipantsRepository;
 
   const getEncryptionKeyMock = jest.fn().mockReturnValue('0123456789abcdef');
@@ -20,7 +22,7 @@ function buildDependencies() {
     hashPhone: hashPhoneMock,
   } as unknown as CryptoService;
 
-  return { repository, createMock, crypto };
+  return { repository, createMock, findAllMaskedMock, crypto };
 }
 
 function buildDatabaseError(code: string, constraint: string): DatabaseError {
@@ -114,6 +116,27 @@ describe('ParticipantsService', () => {
       const service = new ParticipantsService(repository, crypto);
 
       await expect(service.create(dto)).rejects.toBe(genericError);
+    });
+  });
+
+  describe('findAllMasked', () => {
+    it('devuelve la lista del repositorio tal cual', async () => {
+      const { repository, findAllMaskedMock, crypto } = buildDependencies();
+      const masked = [
+        {
+          id: 'uuid-1',
+          name: 'Juan',
+          walletNumber: '007',
+          photoPublicId: 'x',
+          photoVersion: null,
+          phoneMasked: '***_***_4567',
+          createdAt: new Date(),
+        },
+      ];
+      findAllMaskedMock.mockResolvedValue(masked);
+      const service = new ParticipantsService(repository, crypto);
+
+      expect(await service.findAllMasked()).toBe(masked);
     });
   });
 });
