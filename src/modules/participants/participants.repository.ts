@@ -97,4 +97,17 @@ export class ParticipantsRepository {
     );
     return rows.length > 0;
   }
+
+  async markAsPaid(
+    walletNumber: string,
+    markedByEmail: string,
+  ): Promise<boolean> {
+    const sql = `
+      UPDATE participants
+      SET is_paid = true, paid_at = NOW() AT TIME ZONE 'UTC', marked_by_email = $1
+      WHERE wallet_number = $2
+    `;
+    const result = await this.pool.query(sql, [markedByEmail, walletNumber]);
+    return (result.rowCount ?? 0) > 0;
+  }
 }
