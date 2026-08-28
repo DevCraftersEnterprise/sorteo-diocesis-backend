@@ -8,6 +8,7 @@ import { CryptoService } from '../../common/crypto/crypto.service';
 import { CreateParticipantDto } from './dto/create-participant.dto';
 import {
   CreatedParticipant,
+  ParticipantMasked,
   ParticipantsRepository,
 } from './participants.repository';
 
@@ -38,6 +39,10 @@ export class ParticipantsService {
     } catch (error) {
       throw this.translateDatabaseError(error, dto.walletNumber);
     }
+  }
+
+  findAllMasked(): Promise<ParticipantMasked[]> {
+    return this.participantsRepository.findAllMasked();
   }
 
   private translateDatabaseError(

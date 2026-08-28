@@ -1,7 +1,11 @@
-import { Body, Controller, Post } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { FirebaseAuthGuard } from '../../common/guards/firebase-auth.guard';
 import { CreateParticipantDto } from './dto/create-participant.dto';
-import { CreatedParticipant } from './participants.repository';
+import {
+  CreatedParticipant,
+  ParticipantMasked,
+} from './participants.repository';
 import { ParticipantsService } from './participants.service';
 
 @ApiTags('participants')
@@ -17,5 +21,17 @@ export class ParticipantsController {
   })
   create(@Body() dto: CreateParticipantDto): Promise<CreatedParticipant> {
     return this.participantsService.create(dto);
+  }
+
+  @Get()
+  @UseGuards(FirebaseAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Lista participantes con el teléfono enmascarado',
+    description:
+      'Requiere token Firebase válido con el custom claim admin:true.',
+  })
+  findAllMasked(): Promise<ParticipantMasked[]> {
+    return this.participantsService.findAllMasked();
   }
 }
