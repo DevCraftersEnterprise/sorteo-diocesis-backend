@@ -20,4 +20,33 @@ describe('AdminController', () => {
     );
     expect(result).toEqual({ ok: true });
   });
+
+  it('delega en AdminService.findUnpaid con el query param q', async () => {
+    const rows = [
+      {
+        id: 'uuid-1',
+        name: 'Juan',
+        wallet_number: '007',
+        created_at: new Date(),
+      },
+    ];
+    const findUnpaidMock = jest.fn().mockResolvedValue(rows);
+    const service = { findUnpaid: findUnpaidMock } as unknown as AdminService;
+    const controller = new AdminController(service);
+
+    const result = await controller.findUnpaid({ q: 'Juan' });
+
+    expect(findUnpaidMock).toHaveBeenCalledWith('Juan');
+    expect(result).toBe(rows);
+  });
+
+  it('usa string vacío si no se manda q', async () => {
+    const findUnpaidMock = jest.fn().mockResolvedValue([]);
+    const service = { findUnpaid: findUnpaidMock } as unknown as AdminService;
+    const controller = new AdminController(service);
+
+    await controller.findUnpaid({});
+
+    expect(findUnpaidMock).toHaveBeenCalledWith('');
+  });
 });

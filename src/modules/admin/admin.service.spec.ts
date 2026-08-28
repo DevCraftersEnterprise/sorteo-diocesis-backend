@@ -28,4 +28,27 @@ describe('AdminService', () => {
       ).rejects.toBeInstanceOf(NotFoundException);
     });
   });
+
+  describe('findUnpaid', () => {
+    it('delega en el repositorio con la query recibida', async () => {
+      const rows = [
+        {
+          id: 'uuid-1',
+          name: 'Juan',
+          wallet_number: '007',
+          created_at: new Date(),
+        },
+      ];
+      const findUnpaidMock = jest.fn().mockResolvedValue(rows);
+      const repository = {
+        findUnpaid: findUnpaidMock,
+      } as unknown as ParticipantsRepository;
+      const service = new AdminService(repository);
+
+      const result = await service.findUnpaid('Juan');
+
+      expect(findUnpaidMock).toHaveBeenCalledWith('Juan');
+      expect(result).toBe(rows);
+    });
+  });
 });

@@ -102,4 +102,72 @@ describe('Admin (e2e)', () => {
       expect(rows[0].marked_by_email).toBe('admin-real@example.com');
     });
   });
+
+  describe('GET /api/admin/unpaid', () => {
+    it('responde 401 sin token', async () => {
+      await request(app.getHttpServer()).get('/api/admin/unpaid').expect(401);
+    });
+
+    it('responde 200 con carteras sin pagar, en snake_case (contrato real de Flutter)', async () => {
+      verifyIdTokenMock.mockResolvedValue({
+        uid: 'admin-1',
+        admin: true,
+        email: 'admin@example.com',
+      });
+
+      await request(app.getHttpServer())
+        .post('/api/participants')
+        .send({
+          name: 'Sin Pagar',
+          walletNumber: '060',
+          phone: '6443334444',
+          photoPublicId: 'ine-photos/sinpagar',
+        })
+        .expect(201);
+
+      const res = await request(app.getHttpServer())
+        .get('/api/admin/unpaid')
+        .query({ q: 'Sin Pagar' })
+        .set('Authorization', 'Bearer token')
+        .expect(200);
+
+      const body = res.body as Array<{ name: string; wallet_number: string }>;
+      const found = body.find((p) => p.wallet_number === '060');
+      expect(found).toBeDefined();
+      expect(found?.name).toBe('Sin Pagar');
+    });
+
+    it('no incluye carteras ya marcadas como pagadas', async () => {
+      verifyIdTokenMock.mockResolvedValue({
+        uid: 'admin-1',
+        admin: true,
+        email: 'admin@example.com',
+      });
+
+      await request(app.getHttpServer())
+        .post('/api/participants')
+        .send({
+          name: 'Ya Pagado',
+          walletNumber: '061',
+          phone: '6445556666',
+          photoPublicId: 'ine-photos/pagado',
+        })
+        .expect(201);
+
+      await request(app.getHttpServer())
+        .put('/api/admin/mark-paid')
+        .set('Authorization', 'Bearer token')
+        .send({ walletNumber: '061' })
+        .expect(200);
+
+      const res = await request(app.getHttpServer())
+        .get('/api/admin/unpaid')
+        .query({ q: '061' })
+        .set('Authorization', 'Bearer token')
+        .expect(200);
+
+      const body = res.body as Array<{ wallet_number: string }>;
+      expect(body.find((p) => p.wallet_number === '061')).toBeUndefined();
+    });
+  });
 });

@@ -43,6 +43,13 @@ interface ParticipantMaskedRow {
   created_at: Date;
 }
 
+export interface UnpaidParticipant {
+  id: string;
+  name: string;
+  wallet_number: string;
+  created_at: Date;
+}
+
 @Injectable()
 export class ParticipantsRepository {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
@@ -109,5 +116,33 @@ export class ParticipantsRepository {
     `;
     const result = await this.pool.query(sql, [markedByEmail, walletNumber]);
     return (result.rowCount ?? 0) > 0;
+  }
+
+  async findUnpaid(query = ''): Promise<UnpaidParticipant[]> {
+    const params: string[] = [];
+    let where = 'WHERE is_paid IS NOT TRUE';
+
+    const trimmed = query.trim();
+    if (trimmed) {
+      const digits = trimmed.replace(/\D/g, '');
+      if (digits) {
+        params.push(`%${trimmed}%`, digits);
+        where += " AND (name ILIKE $1 OR wallet_number LIKE $2 || '%')";
+      } else {
+        params.push(`%${trimmed}%`);
+        where += ' AND name ILIKE $1';
+      }
+    }
+
+    const sql = `
+      SELECT id, name, wallet_number, created_at
+      FROM participants
+      ${where}
+      ORDER BY wallet_number::int ASC
+      LIMIT 500
+    `;
+
+    const { rows } = await this.pool.query<UnpaidParticipant>(sql, params);
+    return rows;
   }
 }
