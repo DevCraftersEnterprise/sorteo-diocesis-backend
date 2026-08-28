@@ -4,17 +4,9 @@ import archiver, { Archiver } from 'archiver';
 import ExcelJS from 'exceljs';
 import { Response } from 'express';
 import { CloudinaryService } from '../../integrations/cloudinary/cloudinary.service';
+import { ExportParticipantRow } from '../participants/participants.repository';
 
-export interface ExportParticipantRow {
-  name: string;
-  walletNumber: string;
-  phoneFull: string;
-  photoPublicId: string | null;
-  createdAt: Date;
-  isPaid: boolean;
-  paidAt: Date | null;
-  markedByEmail: string | null;
-}
+export type { ExportParticipantRow };
 
 const PHOTO_URL_TTL_SECONDS = 180;
 const PHOTO_FETCH_CONCURRENCY = 10;

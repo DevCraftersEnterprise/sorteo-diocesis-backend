@@ -11,9 +11,11 @@ import { FirebaseAdminService } from './../src/integrations/firebase/firebase-ad
 describe('Admin (e2e)', () => {
   let app: INestApplication<App>;
   let verifyIdTokenMock: jest.Mock;
+  let originalFetch: typeof fetch;
 
   beforeEach(async () => {
     verifyIdTokenMock = jest.fn();
+    originalFetch = global.fetch;
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -28,6 +30,7 @@ describe('Admin (e2e)', () => {
   });
 
   afterEach(async () => {
+    global.fetch = originalFetch;
     await app.close();
   });
 
@@ -168,6 +171,50 @@ describe('Admin (e2e)', () => {
 
       const body = res.body as Array<{ wallet_number: string }>;
       expect(body.find((p) => p.wallet_number === '061')).toBeUndefined();
+    });
+  });
+
+  describe('GET /api/admin/export', () => {
+    it('responde 401 sin token', async () => {
+      await request(app.getHttpServer()).get('/api/admin/export').expect(401);
+    });
+
+    it('responde 403 con token válido pero sin claim admin', async () => {
+      verifyIdTokenMock.mockResolvedValue({ uid: 'user-1' });
+
+      await request(app.getHttpServer())
+        .get('/api/admin/export')
+        .set('Authorization', 'Bearer token')
+        .expect(403);
+    });
+
+    it('responde 200 con el ZIP y los headers correctos', async () => {
+      verifyIdTokenMock.mockResolvedValue({
+        uid: 'admin-1',
+        admin: true,
+        email: 'admin@example.com',
+      });
+      // No hay foto real que bajar en este test — se simula que
+      // Cloudinary no la sirve, así el export no toca la red real.
+      global.fetch = jest.fn().mockResolvedValue({ ok: false });
+
+      await request(app.getHttpServer())
+        .post('/api/participants')
+        .send({
+          name: 'Para Exportar',
+          walletNumber: '070',
+          phone: '6449990000',
+          photoPublicId: 'ine-photos/exportar',
+        })
+        .expect(201);
+
+      const res = await request(app.getHttpServer())
+        .get('/api/admin/export')
+        .set('Authorization', 'Bearer token')
+        .expect(200);
+
+      expect(res.headers['content-type']).toContain('application/zip');
+      expect(res.headers['content-disposition']).toContain('sorteo_export.zip');
     });
   });
 });

@@ -1,11 +1,20 @@
-import { Body, Controller, Get, Put, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Put,
+  Query,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { FirebaseAuthGuard } from '../../common/guards/firebase-auth.guard';
+import { UnpaidParticipant } from '../participants/participants.repository';
 import { AdminService } from './admin.service';
 import { FindUnpaidQueryDto } from './dto/find-unpaid-query.dto';
 import { MarkPaidDto } from './dto/mark-paid.dto';
-import { UnpaidParticipant } from '../participants/participants.repository';
 
 @ApiTags('admin')
 @ApiBearerAuth()
@@ -36,5 +45,15 @@ export class AdminController {
   })
   findUnpaid(@Query() query: FindUnpaidQueryDto): Promise<UnpaidParticipant[]> {
     return this.adminService.findUnpaid(query.q ?? '');
+  }
+
+  @Get('export')
+  @ApiOperation({
+    summary: 'Exporta participantes a Excel + fotos en un ZIP',
+    description:
+      'Requiere token admin. Streaming directo de la respuesta — no pasa por el envoltorio JSON habitual del resto de la API.',
+  })
+  async exportZip(@Res() response: Response): Promise<void> {
+    await this.adminService.exportZip(response);
   }
 }

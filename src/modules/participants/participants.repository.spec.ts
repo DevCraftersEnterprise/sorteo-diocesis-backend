@@ -232,4 +232,72 @@ describe('ParticipantsRepository', () => {
       expect(await repository.findUnpaid('')).toBe(rows);
     });
   });
+
+  describe('findAllForExport', () => {
+    it('pasa la clave de cifrado y mapea las filas a camelCase', async () => {
+      const createdAt = new Date('2026-01-01T00:00:00Z');
+      const paidAt = new Date('2026-01-02T00:00:00Z');
+      const rows = [
+        {
+          name: 'Juan Pérez',
+          wallet_number: '007',
+          phone_full: '6441234567',
+          photo_public_id: 'ine-photos/abc',
+          created_at: createdAt,
+          is_paid: true,
+          paid_at: paidAt,
+          marked_by_email: 'admin@example.com',
+        },
+      ];
+      const queryMock = jest.fn().mockResolvedValue({ rows });
+      const pool = { query: queryMock } as unknown as Pool;
+      const repository = new ParticipantsRepository(pool);
+
+      const result = await repository.findAllForExport('0123456789abcdef');
+
+      expect(queryMock).toHaveBeenCalledWith(
+        expect.stringContaining('pgp_sym_decrypt(phone_enc, $1)'),
+        ['0123456789abcdef'],
+      );
+      expect(result).toEqual([
+        {
+          name: 'Juan Pérez',
+          walletNumber: '007',
+          phoneFull: '6441234567',
+          photoPublicId: 'ine-photos/abc',
+          createdAt,
+          isPaid: true,
+          paidAt,
+          markedByEmail: 'admin@example.com',
+        },
+      ]);
+    });
+
+    it('mapea is_paid en false y paid_at/marked_by_email en null cuando aplica', async () => {
+      const rows = [
+        {
+          name: 'Ana',
+          wallet_number: '008',
+          phone_full: '6449999999',
+          photo_public_id: null,
+          created_at: new Date(),
+          is_paid: false,
+          paid_at: null,
+          marked_by_email: null,
+        },
+      ];
+      const queryMock = jest.fn().mockResolvedValue({ rows });
+      const pool = { query: queryMock } as unknown as Pool;
+      const repository = new ParticipantsRepository(pool);
+
+      const result = await repository.findAllForExport('key');
+
+      expect(result[0]).toMatchObject({
+        isPaid: false,
+        paidAt: null,
+        markedByEmail: null,
+        photoPublicId: null,
+      });
+    });
+  });
 });
