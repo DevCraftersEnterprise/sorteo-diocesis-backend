@@ -1,7 +1,10 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
+  Headers,
+  Post,
   Put,
   Query,
   Res,
@@ -12,9 +15,12 @@ import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { FirebaseAuthGuard } from '../../common/guards/firebase-auth.guard';
 import { UnpaidParticipant } from '../participants/participants.repository';
-import { AdminService } from './admin.service';
+import { AdminService, PurgeSummary } from './admin.service';
 import { FindUnpaidQueryDto } from './dto/find-unpaid-query.dto';
 import { MarkPaidDto } from './dto/mark-paid.dto';
+
+const CONFIRM_PURGE_HEADER = 'x-confirm-purge';
+const CONFIRM_PURGE_VALUE = 'yes';
 
 @ApiTags('admin')
 @ApiBearerAuth()
@@ -55,5 +61,24 @@ export class AdminController {
   })
   async exportZip(@Res() response: Response): Promise<void> {
     await this.adminService.exportZip(response);
+  }
+
+  @Post('purge')
+  @ApiOperation({
+    summary: 'Borra todos los participantes y sus fotos en Cloudinary',
+    description:
+      'Requiere token admin y el header "X-Confirm-Purge: yes". Corrige BUG-001: el cliente Flutter siempre envió POST, nunca DELETE.',
+  })
+  async purgeAll(
+    @Headers(CONFIRM_PURGE_HEADER) confirmHeader: string | undefined,
+  ): Promise<PurgeSummary> {
+    if (confirmHeader !== CONFIRM_PURGE_VALUE) {
+      throw new BadRequestException({
+        error: 'purge_not_confirmed',
+        message: `Falta el header ${CONFIRM_PURGE_HEADER}: ${CONFIRM_PURGE_VALUE}`,
+      });
+    }
+
+    return this.adminService.purgeAll();
   }
 }

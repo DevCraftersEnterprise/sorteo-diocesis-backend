@@ -18,6 +18,11 @@ interface DeleteResourcesResponse {
   deleted?: Record<string, string>;
 }
 
+export interface DeletePhotosResult {
+  deletedCount: number;
+  failedPublicIds: string[];
+}
+
 @Injectable()
 export class CloudinaryService {
   private readonly cloudName: string;
@@ -79,25 +84,40 @@ export class CloudinaryService {
     });
   }
 
-  async deletePhotosByPublicIds(publicIds: string[] = []): Promise<number> {
-    if (!publicIds.length) return 0;
+  async deletePhotosByPublicIds(
+    publicIds: string[] = [],
+  ): Promise<DeletePhotosResult> {
+    if (!publicIds.length) return { deletedCount: 0, failedPublicIds: [] };
 
     const chunks: string[][] = [];
     for (let i = 0; i < publicIds.length; i += 100) {
       chunks.push(publicIds.slice(i, i + 100));
     }
 
-    let totalDeleted = 0;
+    let deletedCount = 0;
+    const failedPublicIds: string[] = [];
+
     for (const batch of chunks) {
       const resp = (await this.cloudinary.api.delete_resources(batch, {
         resource_type: 'image',
         type: 'authenticated',
       })) as DeleteResourcesResponse;
 
-      totalDeleted += Object.values(resp.deleted ?? {}).filter(
-        (v) => v === 'deleted',
-      ).length;
+      const deleted = resp.deleted ?? {};
+      for (const id of batch) {
+        if (deleted[id] === 'deleted') {
+          deletedCount += 1;
+        } else {
+          // Falta en la respuesta o vino con status distinto de
+          // "deleted" (p. ej. "not_found"/"error") — se reporta como
+          // fallo explícito en lugar de perderse en un conteo global
+          // (corrige A3: antes no había forma de saber CUÁLES fotos
+          // quedaban huérfanas tras una purga parcial).
+          failedPublicIds.push(id);
+        }
+      }
     }
-    return totalDeleted;
+
+    return { deletedCount, failedPublicIds };
   }
 }

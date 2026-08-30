@@ -50,6 +50,11 @@ export interface UnpaidParticipant {
   created_at: Date;
 }
 
+export interface PurgeResult {
+  deletedCount: number;
+  photoPublicIds: string[];
+}
+
 export interface ExportParticipantRow {
   name: string;
   walletNumber: string;
@@ -197,5 +202,23 @@ export class ParticipantsRepository {
       paidAt: row.paid_at,
       markedByEmail: row.marked_by_email,
     }));
+  }
+
+  async purgeAll(): Promise<PurgeResult> {
+    // DELETE ... RETURNING en una sola sentencia atómica: a diferencia
+    // de un SELECT de public_id seguido de un DELETE por separado, no
+    // deja ninguna ventana donde un participante insertado entre
+    // ambas queries se borre sin que su foto quede registrada para
+    // limpieza en Cloudinary.
+    const { rows, rowCount } = await this.pool.query<{
+      photo_public_id: string | null;
+    }>('DELETE FROM participants RETURNING photo_public_id');
+
+    return {
+      deletedCount: rowCount ?? 0,
+      photoPublicIds: rows
+        .map((row) => row.photo_public_id)
+        .filter((id): id is string => Boolean(id)),
+    };
   }
 }

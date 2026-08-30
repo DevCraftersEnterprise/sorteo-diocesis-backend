@@ -300,4 +300,56 @@ describe('ParticipantsRepository', () => {
       });
     });
   });
+
+  describe('purgeAll', () => {
+    it('borra todo en una sola sentencia y devuelve deletedCount + photoPublicIds', async () => {
+      const queryMock = jest.fn().mockResolvedValue({
+        rowCount: 2,
+        rows: [
+          { photo_public_id: 'ine-photos/a' },
+          { photo_public_id: 'ine-photos/b' },
+        ],
+      });
+      const pool = { query: queryMock } as unknown as Pool;
+      const repository = new ParticipantsRepository(pool);
+
+      const result = await repository.purgeAll();
+
+      expect(queryMock).toHaveBeenCalledWith(
+        expect.stringContaining('DELETE FROM participants'),
+      );
+      const calls = queryMock.mock.calls as [string][];
+      expect(calls[0][0]).toContain('RETURNING photo_public_id');
+      expect(result).toEqual({
+        deletedCount: 2,
+        photoPublicIds: ['ine-photos/a', 'ine-photos/b'],
+      });
+    });
+
+    it('filtra photo_public_id null y usa 0 si rowCount viene null', async () => {
+      const queryMock = jest.fn().mockResolvedValue({
+        rowCount: null,
+        rows: [{ photo_public_id: null }],
+      });
+      const pool = { query: queryMock } as unknown as Pool;
+      const repository = new ParticipantsRepository(pool);
+
+      const result = await repository.purgeAll();
+
+      expect(result).toEqual({ deletedCount: 0, photoPublicIds: [] });
+    });
+
+    it('devuelve deletedCount 0 y photoPublicIds vacío si no había participantes', async () => {
+      const queryMock = jest.fn().mockResolvedValue({
+        rowCount: 0,
+        rows: [],
+      });
+      const pool = { query: queryMock } as unknown as Pool;
+      const repository = new ParticipantsRepository(pool);
+
+      const result = await repository.purgeAll();
+
+      expect(result).toEqual({ deletedCount: 0, photoPublicIds: [] });
+    });
+  });
 });

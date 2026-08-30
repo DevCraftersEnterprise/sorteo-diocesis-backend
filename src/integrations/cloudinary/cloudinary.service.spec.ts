@@ -103,7 +103,7 @@ describe('CloudinaryService', () => {
   });
 
   describe('deletePhotosByPublicIds', () => {
-    it('devuelve 0 sin llamar al SDK si la lista viene vacía', async () => {
+    it('devuelve deletedCount 0 y failedPublicIds vacío sin llamar al SDK si la lista viene vacía', async () => {
       const fakeCloudinary = buildFakeCloudinary();
       const service = new CloudinaryService(
         fakeCloudinary,
@@ -112,11 +112,11 @@ describe('CloudinaryService', () => {
 
       const result = await service.deletePhotosByPublicIds([]);
 
-      expect(result).toBe(0);
+      expect(result).toEqual({ deletedCount: 0, failedPublicIds: [] });
       expect(fakeCloudinary.api.delete_resources).not.toHaveBeenCalled();
     });
 
-    it('cuenta solo los recursos con status "deleted", ignorando "not_found"/"error"', async () => {
+    it('cuenta solo los recursos con status "deleted" y reporta el resto como fallidos', async () => {
       const fakeCloudinary = buildFakeCloudinary();
       (fakeCloudinary.api.delete_resources as jest.Mock).mockResolvedValue({
         deleted: { a: 'deleted', b: 'not_found', c: 'deleted', d: 'error' },
@@ -133,7 +133,25 @@ describe('CloudinaryService', () => {
         'd',
       ]);
 
-      expect(result).toBe(2);
+      expect(result).toEqual({
+        deletedCount: 2,
+        failedPublicIds: ['b', 'd'],
+      });
+    });
+
+    it('reporta como fallido un public_id ausente en la respuesta del SDK', async () => {
+      const fakeCloudinary = buildFakeCloudinary();
+      (fakeCloudinary.api.delete_resources as jest.Mock).mockResolvedValue({
+        deleted: { a: 'deleted' },
+      });
+      const service = new CloudinaryService(
+        fakeCloudinary,
+        buildConfigService(),
+      );
+
+      const result = await service.deletePhotosByPublicIds(['a', 'b']);
+
+      expect(result).toEqual({ deletedCount: 1, failedPublicIds: ['b'] });
     });
 
     it('divide en lotes de 100 cuando hay más de 100 public_ids', async () => {
@@ -147,13 +165,14 @@ describe('CloudinaryService', () => {
       );
       const publicIds = Array.from({ length: 150 }, (_, i) => `id-${i}`);
 
-      await service.deletePhotosByPublicIds(publicIds);
+      const result = await service.deletePhotosByPublicIds(publicIds);
 
       expect(fakeCloudinary.api.delete_resources).toHaveBeenCalledTimes(2);
       const calls = (fakeCloudinary.api.delete_resources as jest.Mock).mock
         .calls as unknown[][];
       expect((calls[0][0] as string[]).length).toBe(100);
       expect((calls[1][0] as string[]).length).toBe(50);
+      expect(result.failedPublicIds.length).toBe(150);
     });
   });
 });

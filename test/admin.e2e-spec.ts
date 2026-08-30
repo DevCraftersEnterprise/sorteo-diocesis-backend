@@ -7,10 +7,12 @@ import { AppModule } from './../src/app.module';
 import { setupGlobalPrefix } from './../src/config/global-prefix.config';
 import { PG_POOL } from './../src/database/database.constants';
 import { FirebaseAdminService } from './../src/integrations/firebase/firebase-admin.service';
+import { CloudinaryService } from './../src/integrations/cloudinary/cloudinary.service';
 
 describe('Admin (e2e)', () => {
   let app: INestApplication<App>;
   let verifyIdTokenMock: jest.Mock;
+  let deletePhotosByPublicIdsMock: jest.Mock;
   let originalFetch: typeof fetch;
 
   beforeEach(async () => {
@@ -27,6 +29,14 @@ describe('Admin (e2e)', () => {
     app = moduleFixture.createNestApplication();
     setupGlobalPrefix(app);
     await app.init();
+
+    // El SDK de Cloudinary hace su propia llamada HTTP interna (no
+    // pasa por global.fetch), así que solo se espía el método que
+    // pega a la red, dejando signedPhotoUrl (usado por el export)
+    // con su implementación real.
+    deletePhotosByPublicIdsMock = jest
+      .spyOn(app.get(CloudinaryService), 'deletePhotosByPublicIds')
+      .mockResolvedValue({ deletedCount: 0, failedPublicIds: [] });
   });
 
   afterEach(async () => {
@@ -215,6 +225,112 @@ describe('Admin (e2e)', () => {
 
       expect(res.headers['content-type']).toContain('application/zip');
       expect(res.headers['content-disposition']).toContain('sorteo_export.zip');
+    });
+  });
+
+  describe('POST /api/admin/purge', () => {
+    it('responde 401 sin token', async () => {
+      await request(app.getHttpServer())
+        .post('/api/admin/purge')
+        .set('X-Confirm-Purge', 'yes')
+        .expect(401);
+    });
+
+    it('responde 403 con token válido pero sin claim admin', async () => {
+      verifyIdTokenMock.mockResolvedValue({ uid: 'user-1' });
+
+      await request(app.getHttpServer())
+        .post('/api/admin/purge')
+        .set('Authorization', 'Bearer token')
+        .set('X-Confirm-Purge', 'yes')
+        .expect(403);
+    });
+
+    it('responde 400 si falta el header X-Confirm-Purge', async () => {
+      verifyIdTokenMock.mockResolvedValue({
+        uid: 'admin-1',
+        admin: true,
+        email: 'admin@example.com',
+      });
+
+      await request(app.getHttpServer())
+        .post('/api/admin/purge')
+        .set('Authorization', 'Bearer token')
+        .expect(400);
+    });
+
+    it('responde 400 si el header no trae exactamente "yes"', async () => {
+      verifyIdTokenMock.mockResolvedValue({
+        uid: 'admin-1',
+        admin: true,
+        email: 'admin@example.com',
+      });
+
+      await request(app.getHttpServer())
+        .post('/api/admin/purge')
+        .set('Authorization', 'Bearer token')
+        .set('X-Confirm-Purge', 'true')
+        .expect(400);
+    });
+
+    it('borra todos los participantes y sus fotos, usando POST (corrige BUG-001)', async () => {
+      verifyIdTokenMock.mockResolvedValue({
+        uid: 'admin-1',
+        admin: true,
+        email: 'admin@example.com',
+      });
+
+      await request(app.getHttpServer())
+        .post('/api/participants')
+        .send({
+          name: 'Para Purgar 1',
+          walletNumber: '080',
+          phone: '6441230001',
+          photoPublicId: 'ine-photos/purgar1',
+        })
+        .expect(201);
+
+      await request(app.getHttpServer())
+        .post('/api/participants')
+        .send({
+          name: 'Para Purgar 2',
+          walletNumber: '081',
+          phone: '6441230002',
+          photoPublicId: 'ine-photos/purgar2',
+        })
+        .expect(201);
+
+      deletePhotosByPublicIdsMock.mockResolvedValue({
+        deletedCount: 2,
+        failedPublicIds: [],
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/admin/purge')
+        .set('Authorization', 'Bearer token')
+        .set('X-Confirm-Purge', 'yes')
+        .expect(201);
+
+      const body = res.body as {
+        ok: boolean;
+        deletedParticipants: number;
+        deletedPhotos: number;
+        failedPhotoDeletions: number;
+      };
+      expect(body.ok).toBe(true);
+      expect(body.deletedParticipants).toBeGreaterThanOrEqual(2);
+      expect(body.deletedPhotos).toBe(2);
+      expect(body.failedPhotoDeletions).toBe(0);
+
+      expect(deletePhotosByPublicIdsMock).toHaveBeenCalledWith(
+        expect.arrayContaining(['ine-photos/purgar1', 'ine-photos/purgar2']),
+      );
+
+      const pool = app.get<Pool>(PG_POOL);
+      const { rows } = await pool.query<{ count: string }>(
+        'SELECT COUNT(*)::int AS count FROM participants',
+      );
+      expect(Number(rows[0].count)).toBe(0);
     });
   });
 });
