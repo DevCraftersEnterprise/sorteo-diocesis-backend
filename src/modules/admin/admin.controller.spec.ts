@@ -1,3 +1,4 @@
+import { Response } from 'express';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { MarkPaidDto } from './dto/mark-paid.dto';
@@ -48,5 +49,16 @@ describe('AdminController', () => {
     await controller.findUnpaid({});
 
     expect(findUnpaidMock).toHaveBeenCalledWith('');
+  });
+
+  it('delega en AdminService.exportZip pasando el response crudo', async () => {
+    const exportZipMock = jest.fn().mockResolvedValue(undefined);
+    const service = { exportZip: exportZipMock } as unknown as AdminService;
+    const controller = new AdminController(service);
+    const response = {} as unknown as Response;
+
+    await controller.exportZip(response);
+
+    expect(exportZipMock).toHaveBeenCalledWith(response);
   });
 });

@@ -50,6 +50,28 @@ export interface UnpaidParticipant {
   created_at: Date;
 }
 
+export interface ExportParticipantRow {
+  name: string;
+  walletNumber: string;
+  phoneFull: string;
+  photoPublicId: string | null;
+  createdAt: Date;
+  isPaid: boolean;
+  paidAt: Date | null;
+  markedByEmail: string | null;
+}
+
+interface ExportRow {
+  name: string;
+  wallet_number: string;
+  phone_full: string;
+  photo_public_id: string | null;
+  created_at: Date;
+  is_paid: boolean;
+  paid_at: Date | null;
+  marked_by_email: string | null;
+}
+
 @Injectable()
 export class ParticipantsRepository {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
@@ -144,5 +166,36 @@ export class ParticipantsRepository {
 
     const { rows } = await this.pool.query<UnpaidParticipant>(sql, params);
     return rows;
+  }
+
+  async findAllForExport(
+    encryptionKey: string,
+  ): Promise<ExportParticipantRow[]> {
+    const sql = `
+      SELECT
+        name,
+        wallet_number,
+        pgp_sym_decrypt(phone_enc, $1)::text AS phone_full,
+        photo_public_id,
+        created_at,
+        is_paid,
+        paid_at,
+        marked_by_email
+      FROM participants
+      ORDER BY created_at DESC
+    `;
+
+    const { rows } = await this.pool.query<ExportRow>(sql, [encryptionKey]);
+
+    return rows.map((row) => ({
+      name: row.name,
+      walletNumber: row.wallet_number,
+      phoneFull: row.phone_full,
+      photoPublicId: row.photo_public_id,
+      createdAt: row.created_at,
+      isPaid: row.is_paid,
+      paidAt: row.paid_at,
+      markedByEmail: row.marked_by_email,
+    }));
   }
 }
