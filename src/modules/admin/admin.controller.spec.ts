@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { Response } from 'express';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
@@ -60,5 +61,46 @@ describe('AdminController', () => {
     await controller.exportZip(response);
 
     expect(exportZipMock).toHaveBeenCalledWith(response);
+  });
+
+  describe('purgeAll', () => {
+    it('rechaza con 400 si falta el header X-Confirm-Purge', async () => {
+      const purgeAllMock = jest.fn();
+      const service = { purgeAll: purgeAllMock } as unknown as AdminService;
+      const controller = new AdminController(service);
+
+      await expect(controller.purgeAll(undefined)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(purgeAllMock).not.toHaveBeenCalled();
+    });
+
+    it('rechaza con 400 si el header trae un valor distinto de "yes"', async () => {
+      const purgeAllMock = jest.fn();
+      const service = { purgeAll: purgeAllMock } as unknown as AdminService;
+      const controller = new AdminController(service);
+
+      await expect(controller.purgeAll('no')).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(purgeAllMock).not.toHaveBeenCalled();
+    });
+
+    it('delega en AdminService.purgeAll cuando el header viene en "yes" (corrige BUG-001)', async () => {
+      const summary = {
+        ok: true as const,
+        deletedParticipants: 3,
+        deletedPhotos: 3,
+        failedPhotoDeletions: 0,
+      };
+      const purgeAllMock = jest.fn().mockResolvedValue(summary);
+      const service = { purgeAll: purgeAllMock } as unknown as AdminService;
+      const controller = new AdminController(service);
+
+      const result = await controller.purgeAll('yes');
+
+      expect(purgeAllMock).toHaveBeenCalled();
+      expect(result).toBe(summary);
+    });
   });
 });
