@@ -14,6 +14,8 @@ export const envValidationSchema = Joi.object({
   CLOUDINARY_API_KEY: Joi.string().required(),
   CLOUDINARY_API_SECRET: Joi.string().required(),
 
+  CORS_ORIGINS: Joi.string().optional(),
+
   ENCRYPTION_KEY: Joi.string().min(16).required(),
   PHONE_SALT: Joi.string().required(),
 

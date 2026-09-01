@@ -74,4 +74,19 @@ describe('envValidationSchema', () => {
     );
     expect(error?.message).toContain('DATABASE_SSL');
   });
+
+  it('CORS_ORIGINS es opcional -- pasa sin definirlo', () => {
+    const { error } = envValidationSchema.validate(validEnv, {
+      abortEarly: false,
+    });
+    expect(error).toBeUndefined();
+  });
+
+  it('acepta CORS_ORIGINS cuando viene definido', () => {
+    const { error } = envValidationSchema.validate(
+      { ...validEnv, CORS_ORIGINS: 'https://sitio.netlify.app' },
+      { abortEarly: false },
+    );
+    expect(error).toBeUndefined();
+  });
 });
