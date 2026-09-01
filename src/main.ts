@@ -4,6 +4,7 @@ import { AppModule } from './app.module';
 import { Logger } from '@nestjs/common';
 import { setupSwagger } from './config/swagger.config';
 import { setupGlobalPrefix } from './config/global-prefix.config';
+import { setupCors } from './config/cors.config';
 
 async function bootstrap() {
   const isProd = process.env.NODE_ENV === 'production';
@@ -15,6 +16,7 @@ async function bootstrap() {
   });
 
   setupGlobalPrefix(app);
+  setupCors(app);
   if (!isProd) setupSwagger(app);
 
   const configService = app.get(ConfigService);

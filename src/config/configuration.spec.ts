@@ -52,4 +52,24 @@ describe('configuration()', () => {
     process.env.DATABASE_SSL = 'false';
     expect(configuration().database.ssl).toBe(false);
   });
+
+  it('usa http://localhost:5173 como cors.origins por defecto', () => {
+    delete process.env.CORS_ORIGINS;
+    expect(configuration().cors.origins).toEqual(['http://localhost:5173']);
+  });
+
+  it('parsea CORS_ORIGINS separado por comas, recortando espacios', () => {
+    process.env.CORS_ORIGINS =
+      'http://localhost:5173, https://sitio.netlify.app ,https://otro.com';
+    expect(configuration().cors.origins).toEqual([
+      'http://localhost:5173',
+      'https://sitio.netlify.app',
+      'https://otro.com',
+    ]);
+  });
+
+  it('descarta entradas vacías en CORS_ORIGINS (ej. coma final)', () => {
+    process.env.CORS_ORIGINS = 'http://localhost:5173,';
+    expect(configuration().cors.origins).toEqual(['http://localhost:5173']);
+  });
 });
