@@ -2,11 +2,12 @@ import { ConfigService } from '@nestjs/config';
 import { v2 as cloudinary } from 'cloudinary';
 import { CloudinaryService } from './cloudinary.service';
 
-function buildConfigService(): ConfigService {
+function buildConfigService(nodeEnv = 'test'): ConfigService {
   const values: Record<string, string> = {
     'cloudinary.cloudName': 'demo-cloud',
     'cloudinary.apiKey': 'demo-key',
     'cloudinary.apiSecret': 'demo-secret',
+    nodeEnv,
   };
   const getMock = jest.fn((key: string) => values[key]);
   return { get: getMock } as unknown as ConfigService;
@@ -28,17 +29,17 @@ function buildFakeCloudinary() {
 
 describe('CloudinaryService', () => {
   describe('buildUploadSignature', () => {
-    it('arma la firma con folder "ine-photos" y type "authenticated"', async () => {
+    it('arma la firma con folder "diocesis-sorteo/dev" y type "authenticated" fuera de producción', async () => {
       const fakeCloudinary = buildFakeCloudinary();
       const service = new CloudinaryService(
         fakeCloudinary,
-        buildConfigService(),
+        buildConfigService('development'),
       );
 
       const result = await service.buildUploadSignature();
       expect(fakeCloudinary.utils.api_sign_request).toHaveBeenCalledWith(
         expect.objectContaining({
-          folder: 'ine-photos',
+          folder: 'diocesis-sorteo/dev',
           type: 'authenticated',
         }),
         'demo-secret',
@@ -49,9 +50,33 @@ describe('CloudinaryService', () => {
         apiKey: 'demo-key',
         timestamp: result.timestamp,
         signature: 'fake-signature',
-        folder: 'ine-photos',
+        folder: 'diocesis-sorteo/dev',
         type: 'authenticated',
       });
+    });
+
+    it('usa el folder "diocesis-sorteo/prod" cuando NODE_ENV es "production"', async () => {
+      const fakeCloudinary = buildFakeCloudinary();
+      const service = new CloudinaryService(
+        fakeCloudinary,
+        buildConfigService('production'),
+      );
+
+      const result = await service.buildUploadSignature();
+
+      expect(result.folder).toBe('diocesis-sorteo/prod');
+    });
+
+    it('usa el folder "diocesis-sorteo/dev" para NODE_ENV "test" (corridas de CI/e2e)', async () => {
+      const fakeCloudinary = buildFakeCloudinary();
+      const service = new CloudinaryService(
+        fakeCloudinary,
+        buildConfigService('test'),
+      );
+
+      const result = await service.buildUploadSignature();
+
+      expect(result.folder).toBe('diocesis-sorteo/dev');
     });
   });
 

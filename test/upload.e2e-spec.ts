@@ -32,7 +32,8 @@ describe('Upload (e2e)', () => {
       type: string;
       signature: string;
     };
-    expect(body.folder).toBe('ine-photos');
+    // NODE_ENV=test en .env.test cae en la rama "dev" a propósito.
+    expect(body.folder).toBe('diocesis-sorteo/dev');
     expect(body.type).toBe('authenticated');
     expect(typeof body.signature).toBe('string');
   });

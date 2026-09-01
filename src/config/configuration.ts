@@ -13,6 +13,16 @@ export default () => ({
     apiSecret: process.env.CLOUDINARY_API_SECRET,
   },
 
+  cors: {
+    // Origen del frontend (Vue/Vite) que puede llamar a esta API
+    // desde el navegador. Lista separada por comas; por defecto solo
+    // el puerto por defecto de "vite dev" en local.
+    origins: (process.env.CORS_ORIGINS ?? 'http://localhost:5173')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+  },
+
   firebase: {
     projectId: process.env.FIREBASE_PROJECT_ID,
     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,

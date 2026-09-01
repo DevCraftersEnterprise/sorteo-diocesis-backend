@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { v2 as CloudinaryClient } from 'cloudinary';
 import { CLOUDINARY } from './cloudinary.constants';
 
-const FOLDER = 'ine-photos';
+const BASE_FOLDER = 'diocesis-sorteo';
 
 export interface UploadSignature {
   cloudName: string;
@@ -28,6 +28,7 @@ export class CloudinaryService {
   private readonly cloudName: string;
   private readonly apiKey: string;
   private readonly apiSecret: string;
+  private readonly folder: string;
 
   constructor(
     @Inject(CLOUDINARY) private readonly cloudinary: typeof CloudinaryClient,
@@ -38,13 +39,21 @@ export class CloudinaryService {
     this.apiKey = this.configService.get<string>('cloudinary.apiKey') ?? '';
     this.apiSecret =
       this.configService.get<string>('cloudinary.apiSecret') ?? '';
+
+    // Separa dev/prod dentro del mismo folder base para poder hacer
+    // pruebas manuales sin mezclar fotos reales con las de prueba.
+    // "test" (corridas de CI/e2e) cae en "dev" a propósito -- nunca
+    // debería ser "production".
+    const nodeEnv = this.configService.get<string>('nodeEnv');
+    const environmentSegment = nodeEnv === 'production' ? 'prod' : 'dev';
+    this.folder = `${BASE_FOLDER}/${environmentSegment}`;
   }
 
   buildUploadSignature(): Promise<UploadSignature> {
     const timestamp = Math.floor(Date.now() / 1000);
 
     const paramsToSign = {
-      folder: FOLDER,
+      folder: this.folder,
       timestamp,
       type: 'authenticated' as const,
     };
@@ -59,7 +68,7 @@ export class CloudinaryService {
       apiKey: this.apiKey,
       timestamp,
       signature,
-      folder: FOLDER,
+      folder: this.folder,
       type: 'authenticated',
     });
   }
