@@ -11,7 +11,7 @@ describe('UploadController', () => {
       apiKey: 'key',
       timestamp: 123,
       signature: 'sig',
-      folder: 'ine-photos',
+      folder: 'diocesis-sorteo/dev',
       type: 'authenticated',
     };
     const buildUploadSignatureMock = jest.fn().mockResolvedValue(signature);
