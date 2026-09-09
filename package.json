@@ -29,6 +29,7 @@
     "migrate:up:ci": "node-pg-migrate up --migration-file-language sql",
     "migrate:up:test": "dotenv -e .env.test -- node-pg-migrate up --migration-file-language sql",
     "admin:set-claim": "dotenv -e .env -- node scripts/set-admin-claim.cjs",
+    "admin:set-claim-all": "dotenv -e .env -- node scripts/set-admin-claim-all.cjs",
     "pretest:e2e": "dotenv -e .env.test -- node scripts/reset-test-db.cjs"
   },
   "dependencies": {
