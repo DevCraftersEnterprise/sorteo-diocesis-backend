@@ -24,7 +24,7 @@ Sustituye de forma incremental a `sorteo_backend` (Express): ambos servicios con
 
 ## 🛠️ Stack Tecnológico
 
-- **NestJS 11** + **TypeScript 5** — Node.js ≥ 20 (CI usa Node 22)
+- **NestJS 11** + **TypeScript 5** — Node.js 24 (versión fijada en `.nvmrc`, la usan CI y Render)
 - **PostgreSQL** con el driver `pg` directo (SQL a mano, **sin ORM**) y la extensión `pgcrypto` para cifrar teléfonos
 - **node-pg-migrate** — migraciones en SQL puro
 - **Firebase Admin** — verificación de ID tokens y custom claim `admin`
@@ -81,7 +81,7 @@ npm install
 cp .env.template .env   # y completa los valores (ver abajo)
 ```
 
-Requisitos: Node.js ≥ 20, un PostgreSQL accesible y credenciales de Cloudinary y de una cuenta de servicio de Firebase. Para las pruebas e2e también hace falta Docker (ver [Pruebas](#-pruebas)).
+Requisitos: Node.js 24 (ver `.nvmrc`), un PostgreSQL accesible y credenciales de Cloudinary y de una cuenta de servicio de Firebase. Para las pruebas e2e también hace falta Docker (ver [Pruebas](#-pruebas)).
 
 ## 🔧 Variables de Entorno
 
